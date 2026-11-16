@@ -1,0 +1,1884 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VESTIGE — Archivo Vivo de Piel y Memoria</title>
+  <link rel="icon" type="image/png" href="assets/icono-vestige.png">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-paper: #EFECE6;
+      --ink-fresh: #141413;
+      --ink-faded: #8C8982;
+      --visceral-red: #9E2A2B;
+      --grid-line: rgba(20, 20, 19, 0.11);
+      --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", "Inter", sans-serif;
+      --font-mono: 'Space Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      cursor: none !important;
+      user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-paper);
+      color: var(--ink-fresh);
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .paper-grain {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 50;
+      opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    }
+
+    #webgl-container {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      transition: filter 0.6s ease;
+    }
+
+    #ink-trail-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    /* Retícula Cartográfica */
+    .cartography-hud {
+      position: fixed;
+      inset: 28px;
+      z-index: 20;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 1.5s ease;
+    }
+
+    .cartography-hud.active {
+      opacity: 1;
+    }
+
+    .axis-vertical {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: linear-gradient(to bottom, transparent, var(--grid-line) 15%, var(--grid-line) 85%, transparent);
+    }
+
+    .axis-horizontal {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--grid-line) 15%, var(--grid-line) 85%, transparent);
+    }
+
+    .hud-meta {
+      position: absolute;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(20, 20, 19, 0.65);
+      line-height: 1.65;
+    }
+
+    .hud-top-left { top: 0; left: 0; }
+    .hud-top-right { top: 0; right: 0; text-align: right; }
+    .hud-bottom-left { bottom: 0; left: 0; }
+    .hud-bottom-right { bottom: 0; right: 0; text-align: right; }
+
+    .live-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--visceral-red);
+      margin-right: 6px;
+      animation: pulseDot 2s infinite;
+    }
+
+    @keyframes pulseDot {
+      0%, 100% { opacity: 0.3; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.2); }
+    }
+
+    .inscribe-trigger {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 25;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--ink-fresh);
+      pointer-events: auto;
+      opacity: 0;
+      transition: opacity 1.5s ease, color 0.3s, border-color 0.3s;
+    }
+
+    .inscribe-trigger.active { opacity: 0.8; }
+    .inscribe-trigger:hover {
+      opacity: 1;
+      color: var(--visceral-red);
+      border-color: var(--visceral-red);
+    }
+
+    /* ACTO I: El Umbral con Logotipo VESTIGE e Incisión */
+    #threshold-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      background-color: var(--bg-paper);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 1.4s cubic-bezier(0.16, 1, 0.3, 1), visibility 1.4s;
+    }
+
+    #threshold-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .logo-lockup {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+
+    .logo-svg {
+      width: 340px;
+      max-width: 82vw;
+      height: auto;
+      overflow: visible;
+    }
+
+    #threshold-incision-line {
+      transition: transform 0.1s ease, stroke 0.3s;
+      transform-origin: 300px 90px;
+    }
+
+    .etymology {
+      max-width: 460px;
+      text-align: center;
+      margin-bottom: 44px;
+      padding: 0 20px;
+    }
+
+    .etymology p {
+      font-family: var(--font-sans);
+      font-weight: 300;
+      font-size: 14px;
+      line-height: 1.65;
+      color: rgba(20, 20, 19, 0.72);
+    }
+
+    .etymology span.concept-tag {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--visceral-red);
+      margin-bottom: 10px;
+    }
+
+    .threshold-instruction {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      opacity: 0.6;
+      animation: pulseText 3s infinite ease-in-out;
+    }
+
+    @keyframes pulseText {
+      0%, 100% { opacity: 0.35; }
+      50% { opacity: 0.85; }
+    }
+
+    /* ACTO III: Despliegue de la Memoria + Red Social de Resonancia */
+    #memory-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 56px 64px;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.7s ease, visibility 0.7s;
+    }
+
+    #memory-overlay.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .memory-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-top: 1px solid rgba(20, 20, 19, 0.18);
+      padding-top: 14px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .memory-center-grid {
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: 48px;
+      align-items: center;
+      max-width: 960px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .memory-story-container {
+      text-align: left;
+    }
+
+    .memory-story-text {
+      font-family: var(--font-sans);
+      font-weight: 300;
+      font-size: 30px;
+      line-height: 1.38;
+      letter-spacing: -0.02em;
+      color: var(--ink-fresh);
+    }
+
+    .story-word {
+      display: inline-block;
+      opacity: 0;
+      filter: blur(5px);
+      transform: translateY(5px);
+      transition: opacity 0.9s ease, filter 0.9s ease, transform 0.9s ease, color 1.5s ease;
+      margin-right: 0.25em;
+    }
+
+    .story-word.revealed {
+      opacity: 1;
+      filter: blur(0px);
+      transform: translateY(0px);
+    }
+
+    .story-word.fading {
+      opacity: 0.28;
+      filter: blur(1.5px);
+      color: var(--ink-faded);
+    }
+
+    .resonance-panel {
+      border-left: 1px solid rgba(20, 20, 19, 0.18);
+      padding-left: 24px;
+      pointer-events: auto;
+    }
+
+    .resonance-title {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--visceral-red);
+      margin-bottom: 14px;
+    }
+
+    .resonance-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 18px;
+      max-height: 210px;
+      overflow-y: auto;
+    }
+
+    .resonance-item {
+      font-family: var(--font-sans);
+      font-weight: 300;
+      font-size: 12.5px;
+      line-height: 1.45;
+      color: rgba(20, 20, 19, 0.82);
+    }
+
+    .resonance-meta {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--ink-faded);
+      margin-top: 3px;
+      letter-spacing: 0.08em;
+    }
+
+    .resonance-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid rgba(20, 20, 19, 0.35);
+      padding: 8px 0;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      color: var(--ink-fresh);
+      outline: none;
+      transition: border-color 0.3s;
+    }
+
+    .resonance-input:focus {
+      border-color: var(--visceral-red);
+    }
+
+    .memory-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 1px solid rgba(20, 20, 19, 0.18);
+      padding-bottom: 14px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      pointer-events: auto;
+    }
+
+    .action-link {
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .action-link:hover {
+      color: var(--visceral-red);
+      border-color: var(--visceral-red);
+    }
+
+    /* ACTO IV: Inscripción con Vectorización Sin Fondo */
+    #inscribe-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 35;
+      background: rgba(239, 236, 230, 0.94);
+      backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.45s ease, visibility 0.45s;
+    }
+
+    #inscribe-overlay.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .inscribe-form {
+      width: 100%;
+      max-width: 460px;
+      text-align: center;
+      padding: 0 24px;
+    }
+
+    .inscribe-form h2 {
+      font-family: var(--font-sans);
+      font-weight: 400;
+      font-size: 24px;
+      letter-spacing: -0.02em;
+      margin-bottom: 24px;
+    }
+
+    .image-dropzone {
+      width: 100%;
+      height: 165px;
+      border: 1px dashed rgba(20, 20, 19, 0.35);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s, background-color 0.3s;
+    }
+
+    .image-dropzone:hover, .image-dropzone.dragover {
+      border-color: var(--visceral-red);
+      background-color: rgba(158, 42, 43, 0.04);
+    }
+
+    .image-dropzone img {
+      max-height: 135px;
+      max-width: 85%;
+      object-fit: contain;
+      display: none;
+    }
+
+    .vector-badge {
+      position: absolute;
+      bottom: 8px;
+      right: 10px;
+      font-family: var(--font-mono);
+      font-size: 8px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--visceral-red);
+      display: none;
+    }
+
+    .dropzone-text {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(20, 20, 19, 0.65);
+      line-height: 1.7;
+    }
+
+    .inscribe-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid rgba(20, 20, 19, 0.4);
+      padding: 12px 4px;
+      font-family: var(--font-sans);
+      font-weight: 300;
+      font-size: 16px;
+      color: var(--ink-fresh);
+      text-align: center;
+      margin-bottom: 22px;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+
+    .inscribe-input:focus {
+      border-color: var(--visceral-red);
+    }
+
+    .inscribe-actions {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      margin-top: 12px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .inscribe-submit {
+      color: var(--visceral-red);
+      font-weight: 700;
+      border-bottom: 1px solid var(--visceral-red);
+      padding-bottom: 4px;
+    }
+
+    .inscribe-cancel {
+      opacity: 0.6;
+      padding-bottom: 4px;
+    }
+
+    /* Banner superior durante el tatuado en tiempo real */
+    #placement-banner {
+      position: fixed;
+      top: 72px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 32;
+      background: var(--ink-fresh);
+      color: var(--bg-paper);
+      padding: 10px 22px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s, background-color 0.3s;
+    }
+
+    #placement-banner.visible {
+      opacity: 1;
+    }
+
+    #placement-banner.tattooing {
+      background: var(--visceral-red);
+    }
+
+    /* CURSOR AGUJA */
+    #needle-cursor {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 100;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+    }
+
+    .needle-dot {
+      width: 4px;
+      height: 4px;
+      background-color: var(--ink-fresh);
+      border-radius: 50%;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      transition: background-color 0.2s;
+    }
+
+    .needle-ring {
+      width: 34px;
+      height: 34px;
+      border: 1px solid rgba(20, 20, 19, 0.45);
+      border-radius: 50%;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(1);
+      transition: transform 0.15s ease-out, border-color 0.2s, width 0.2s, height 0.2s;
+    }
+
+    .needle-label {
+      position: absolute;
+      top: 24px;
+      left: 16px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      color: var(--ink-fresh);
+      opacity: 0.85;
+    }
+
+    #needle-cursor.hovering .needle-ring {
+      border-color: var(--visceral-red);
+      width: 44px;
+      height: 44px;
+    }
+
+    #needle-cursor.hovering .needle-dot {
+      background-color: var(--visceral-red);
+    }
+
+    #stencil-toast {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 60;
+      background: var(--ink-fresh);
+      color: var(--bg-paper);
+      padding: 16px 28px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+    }
+
+    #stencil-toast.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="paper-grain"></div>
+  <canvas id="ink-trail-canvas"></canvas>
+  <div id="webgl-container"></div>
+
+  <!-- Retícula Cartográfica -->
+  <div class="cartography-hud" id="hud">
+    <div class="axis-vertical"></div>
+    <div class="axis-horizontal"></div>
+    
+    <div class="hud-meta hud-top-left">
+      <div>VESTIGE // ARCHIVO DE PIEL</div>
+      <div id="memory-counter">05 MARCAS ACTIVAS · 02 EN RIESGO DE OLVIDO</div>
+    </div>
+
+    <div class="hud-meta hud-top-right">
+      <div><span class="live-dot"></span>3 PORTADORES CONECTADOS EN RED</div>
+      <div id="drift-status">ARRASTRA PARA ROTAR · MANTÉN PULSADO PARA RECORDAR</div>
+    </div>
+
+    <div class="hud-meta hud-bottom-left">
+      <div id="coord-zone">ZONA: EXPLORACIÓN LIBRE</div>
+      <div id="coord-depth">PROFUNDIDAD DERMIS: 0.00 MM</div>
+    </div>
+
+    <div class="hud-meta hud-bottom-right">
+      <div>HILOS ROJOS: RESONANCIA ENTRE DESCONOCIDOS</div>
+      <div>PULSA [S] EN UNA MEMORIA PARA EXTRAER CALCO</div>
+    </div>
+  </div>
+
+  <!-- Banner de tatuado en vivo -->
+  <div id="placement-banner">MANTÉN PULSADO SOBRE EL PUNTO EXACTO DEL CUERPO PARA TATUAR</div>
+
+  <!-- Gatillo inferior -->
+  <div class="inscribe-trigger" id="inscribe-btn">+ INSCRIBIR NUEVA CICATRIZ</div>
+
+  <!-- ACTO I: El Umbral con Logotipo VESTIGE e Incisión -->
+  <div id="threshold-screen">
+    <div class="logo-lockup">
+      <svg class="logo-svg" viewBox="0 0 600 180" xmlns="http://www.w3.org/2000/svg">
+        <g fill="#141413" font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Inter', sans-serif" font-size="46" font-weight="400" letter-spacing="14">
+          <text x="274" y="106" text-anchor="end">VES</text>
+          <text x="326" y="106" text-anchor="start">TGE</text>
+        </g>
+        <!-- La 'I' transformada en incisión quirúrgica -->
+        <line id="threshold-incision-line" x1="300" y1="36" x2="300" y2="142" stroke="#141413" stroke-width="2.4"/>
+        <!-- Punto visceral -->
+        <circle cx="300" cy="154" r="3" fill="#9E2A2B"/>
+      </svg>
+    </div>
+
+    <div class="etymology">
+      <span class="concept-tag">CONCEPTO // YA'ABURNEE</span>
+      <p>La esperanza de morir antes que la persona amada para no soportar su ausencia. Un cuerpo colectivo donde las cicatrices permanecen nítidas solo si otros las recuerdan.</p>
+    </div>
+    <div class="threshold-instruction">MANTÉN PULSADO EN CUALQUIER LUGAR PARA SINCRONIZAR EL PULSO</div>
+  </div>
+
+  <!-- ACTO III: Despliegue de la Memoria + Red Social -->
+  <div id="memory-overlay">
+    <div class="memory-header">
+      <div>
+        <span id="mem-zone">CLAVÍCULA IZQUIERDA</span> · <span id="mem-date">14 NOV 2019</span>
+      </div>
+      <div>
+        <span id="mem-touches">TOCADO POR 14 DESCONOCIDOS</span>
+      </div>
+    </div>
+
+    <div class="memory-center-grid">
+      <div class="memory-story-container">
+        <div class="memory-story-text" id="mem-story"></div>
+      </div>
+
+      <div class="resonance-panel">
+        <div class="resonance-title" id="resonance-header">● RESONANCIA EN ESTA MISMA ZONA</div>
+        <div class="resonance-list" id="resonance-list"></div>
+        <input type="text" id="resonance-input" class="resonance-input" placeholder="Dejar un eco anónimo en su piel [Enter]..." maxlength="95" />
+      </div>
+    </div>
+
+    <div class="memory-footer">
+      <div class="action-link" id="extract-stencil-btn">↓ EXTRAER CALCO TRANSMEDIA [S]</div>
+      <div class="action-link" id="close-memory-btn">← VOLVER AL CUERPO COLECTIVO</div>
+    </div>
+  </div>
+
+  <!-- ACTO IV: Inscripción con Vectorización Automática -->
+  <div id="inscribe-overlay">
+    <div class="inscribe-form">
+      <h2>Inscribir vestigio en la piel</h2>
+      
+      <input type="file" id="tattoo-file-input" accept="image/*" style="display: none;" />
+      <div class="image-dropzone" id="image-dropzone">
+        <img id="tattoo-preview" alt="Trazo vectorizado del tatuaje" />
+        <span class="vector-badge" id="vector-badge">● TRAZO VECTORIZADO SIN FONDO</span>
+        <div class="dropzone-text" id="dropzone-text">
+          ARRASTRA LA FOTO DE TU TATUAJE AQUÍ<br>SE CONVERTIRÁ AUTOMÁTICAMENTE EN TINTA PURA SIN FONDO
+        </div>
+      </div>
+
+      <input type="text" id="new-zone" class="inscribe-input" placeholder="Nombre de la zona (ej. Clavícula derecha)" maxlength="35" />
+      <input type="text" id="new-story" class="inscribe-input" placeholder="¿A quién o qué te niegas a olvidar?" maxlength="140" />
+      
+      <div class="inscribe-actions">
+        <span class="inscribe-cancel" id="cancel-inscribe-btn">CANCELAR [ESC]</span>
+        <span class="inscribe-submit" id="confirm-inscribe-btn">ELEGIR PUNTO EN EL CUERPO →</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="stencil-toast">CALCO TRANSMEDIA DESCARGADO — LISTO PARA TRANSFERIR A LA PIEL</div>
+
+  <!-- Cursor Aguja -->
+  <div id="needle-cursor">
+    <div class="needle-ring" id="needle-ring"></div>
+    <div class="needle-dot"></div>
+    <div class="needle-label" id="needle-label"></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <script>
+    /**
+     * ============================================================================
+     * 1. MOTOR DE AUDIO GENERATIVO (Latido + Máquina de tatuar realista + Acorde)
+     * ============================================================================
+     */
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.isInitialized = false;
+        this.needleOsc = null;
+        this.needleSubOsc = null;
+        this.needleGain = null;
+      }
+
+      init() {
+        if (this.isInitialized) return;
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        this.ctx = new AudioContext();
+        this.isInitialized = true;
+        this.startHeartbeat();
+      }
+
+      startHeartbeat() {
+        const beat = () => {
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+          this.triggerThump(now, 50, 0.13);
+          this.triggerThump(now + 0.28, 42, 0.08);
+          setTimeout(beat, 2400);
+        };
+        beat();
+      }
+
+      triggerThump(time, freq, volume) {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, time);
+        osc.frequency.exponentialRampToValueAtTime(22, time + 0.35);
+
+        gain.gain.setValueAtTime(0.001, time);
+        gain.gain.linearRampToValueAtTime(volume, time + 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.45);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(time);
+        osc.stop(time + 0.5);
+      }
+
+      // Sonido de máquina de tatuar (intenso cuando está tatuando piel nueva)
+      startNeedleBuzz(isTattooingNew = false) {
+        if (!this.ctx || this.needleOsc) return;
+        const now = this.ctx.currentTime;
+        
+        this.needleOsc = this.ctx.createOscillator();
+        this.needleSubOsc = this.ctx.createOscillator();
+        const filter = this.ctx.createBiquadFilter();
+        this.needleGain = this.ctx.createGain();
+
+        // Frecuencia característica de bobina/rotativa de tatuaje (~125 Hz + armónico)
+        this.needleOsc.type = 'sawtooth';
+        this.needleOsc.frequency.setValueAtTime(isTattooingNew ? 132 : 115, now);
+
+        this.needleSubOsc.type = 'square';
+        this.needleSubOsc.frequency.setValueAtTime(isTattooingNew ? 66 : 58, now);
+
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(isTattooingNew ? 480 : 320, now);
+        filter.Q.setValueAtTime(3.2, now);
+
+        const targetVol = isTattooingNew ? 0.095 : 0.04;
+        this.needleGain.gain.setValueAtTime(0.001, now);
+        this.needleGain.gain.linearRampToValueAtTime(targetVol, now + 0.12);
+
+        this.needleOsc.connect(filter);
+        this.needleSubOsc.connect(filter);
+        filter.connect(this.needleGain);
+        this.needleGain.connect(this.ctx.destination);
+
+        this.needleOsc.start(now);
+        this.needleSubOsc.start(now);
+      }
+
+      stopNeedleBuzz() {
+        if (this.needleOsc && this.ctx) {
+          const now = this.ctx.currentTime;
+          this.needleGain.gain.linearRampToValueAtTime(0.0001, now + 0.12);
+          this.needleOsc.stop(now + 0.13);
+          if (this.needleSubOsc) this.needleSubOsc.stop(now + 0.13);
+          this.needleOsc = null;
+          this.needleSubOsc = null;
+        }
+      }
+
+      playMemoryChime(pitchFactor = 1) {
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const freqs = [220 * pitchFactor, 277.18 * pitchFactor, 329.63 * pitchFactor];
+        
+        freqs.forEach((f, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(f, now + idx * 0.12);
+
+          gain.gain.setValueAtTime(0.0001, now + idx * 0.12);
+          gain.gain.linearRampToValueAtTime(0.032, now + idx * 0.12 + 0.4);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.12 + 3.2);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + idx * 0.12);
+          osc.stop(now + idx * 0.12 + 3.3);
+        });
+      }
+    }
+
+    const sound = new SoundEngine();
+
+    /**
+     * ============================================================================
+     * 2. VECTORIZADOR Y EXTRACTOR DE TINTA SIN FONDO (Imagen -> Trazo puro)
+     * ============================================================================
+     */
+    function vectorizeImageToInkCanvas(img) {
+      const size = 512;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      // Escalamos manteniendo proporción centrada
+      const scale = Math.min((size * 0.78) / img.width, (size * 0.78) / img.height);
+      const w = img.width * scale;
+      const h = img.height * scale;
+      const offsetX = (size - w) / 2;
+      const offsetY = (size - h) / 2;
+
+      // Suavizado ligero previo para limpiar ruido JPEG y simular trazo vectorial limpio
+      ctx.filter = 'blur(0.7px) contrast(140%)';
+      ctx.drawImage(img, offsetX, offsetY, w, h);
+      ctx.filter = 'none';
+
+      const imgData = ctx.getImageData(0, 0, size, size);
+      const data = imgData.data;
+
+      // Calculamos la luminancia media de los bordes para detectar automáticamente el color del fondo
+      let borderLumSum = 0;
+      let borderCount = 0;
+      for (let x = 0; x < size; x += 4) {
+        const topIdx = x * 4;
+        const botIdx = ((size - 1) * size + x) * 4;
+        borderLumSum += (data[topIdx] + data[topIdx + 1] + data[topIdx + 2]) / 3;
+        borderLumSum += (data[botIdx] + data[botIdx + 1] + data[botIdx + 2]) / 3;
+        borderCount += 2;
+      }
+      const avgBackgroundLum = borderLumSum / borderCount;
+      // Umbral adaptativo: todo lo que se acerque al fondo desaparece por completo
+      const threshold = Math.max(115, avgBackgroundLum * 0.78);
+
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const origAlpha = data[i + 3];
+
+        if (origAlpha < 40) {
+          data[i + 3] = 0;
+          continue;
+        }
+
+        const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+
+        if (lum >= threshold) {
+          // Fondo eliminado al 100% (transparente puro)
+          data[i + 3] = 0;
+        } else {
+          // Convertimos el trazo en tinta negra carbón uniforme (#141413) con borde antialias
+          const edgeFactor = Math.min(1, (threshold - lum) / 38);
+          data[i] = 20;
+          data[i + 1] = 20;
+          data[i + 2] = 19;
+          data[i + 3] = Math.round(edgeFactor * 242);
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+      return canvas;
+    }
+
+    /**
+     * ============================================================================
+     * 3. BASE DE DATOS DE MEMORIAS
+     * ============================================================================
+     */
+    const memories = [
+      {
+        id: 1,
+        zone: "CLAVÍCULA IZQUIERDA",
+        group: "TORSO_SUPERIOR",
+        date: "12 MAR 2018",
+        daysForgotten: 420,
+        touches: 14,
+        pitch: 0.9,
+        pos: new THREE.Vector3(-0.62, 1.32, 0.72),
+        symbolType: "constellation",
+        vectorCanvas: null,
+        story: "Las coordenadas exactas del banco frente al mar donde mi abuelo me enseñó a leer antes de olvidar mi nombre.",
+        resonances: [
+          { text: "Yo también llevo sus iniciales en el mismo hombro. Nunca se van del todo.", meta: "PORTADOR #089 · HACE 2H" },
+          { text: "He venido a tocar tu marca para que no se borre.", meta: "PORTADOR #214 · AYER" }
+        ]
+      },
+      {
+        id: 2,
+        zone: "ESTERNÓN / CENTRO",
+        group: "TORSO_SUPERIOR",
+        date: "04 NOV 2022",
+        daysForgotten: 12,
+        touches: 48,
+        pitch: 1.1,
+        pos: new THREE.Vector3(0.02, 0.75, 0.96),
+        symbolType: "thread",
+        vectorCanvas: null,
+        story: "La última nota de voz que me dejaste antes de subir al avión. Tatué la onda sonora para poder tocar tu voz cuando haya silencio.",
+        resonances: [
+          { text: "Duele muchísimo tatuarse el esternón, pero duele más el silencio.", meta: "PORTADOR #042 · EN LÍNEA AHORA" }
+        ]
+      },
+      {
+        id: 3,
+        zone: "COSTILLA DERECHA",
+        group: "COSTADO",
+        date: "19 AGO 2016",
+        daysForgotten: 890,
+        touches: 3,
+        pitch: 0.8,
+        pos: new THREE.Vector3(0.82, 0.15, 0.58),
+        symbolType: "eclipse",
+        vectorCanvas: null,
+        story: "Un eclipse incompleto. Prometimos que quien se fuera primero esperaría al otro en la sombra.",
+        resonances: [
+          { text: "Rescatada del olvido. Qué bonita promesa.", meta: "PORTADOR #118 · HACE 3 DÍAS" }
+        ]
+      },
+      {
+        id: 4,
+        zone: "OMÓPLATO IZQUIERDO",
+        group: "ESPALDA",
+        date: "27 ENE 2021",
+        daysForgotten: 140,
+        touches: 19,
+        pitch: 1.25,
+        pos: new THREE.Vector3(-0.68, 0.95, -0.74),
+        symbolType: "botanical",
+        vectorCanvas: null,
+        story: "Una rama de olivo seco que guardé dentro de un libro durante diez años tras vaciar la casa de mi madre.",
+        resonances: [
+          { text: "Tengo un olivo tatuado en el mismo sitio por la misma razón.", meta: "PORTADOR #301 · HACE 5H" }
+        ]
+      },
+      {
+        id: 5,
+        zone: "PLEXO SOLAR",
+        group: "COSTADO",
+        date: "30 OCT 2023",
+        daysForgotten: 5,
+        touches: 64,
+        pitch: 1.0,
+        pos: new THREE.Vector3(-0.22, -0.25, 0.92),
+        symbolType: "scar",
+        vectorCanvas: null,
+        story: "La cicatriz de una caída en bicicleta el verano en que creíamos que íbamos a vivir para siempre.",
+        resonances: [
+          { text: "A veces los recuerdos felices son los que más cuesta soltar.", meta: "PORTADOR #177 · HACE 1D" }
+        ]
+      }
+    ];
+
+    function createTattooTexture(memory) {
+      const isFaded = memory.daysForgotten > 300;
+
+      // Si el usuario subió su imagen, usamos directamente el lienzo vectorizado sin fondo
+      if (memory.vectorCanvas) {
+        const tex = new THREE.CanvasTexture(memory.vectorCanvas);
+        tex.needsUpdate = true;
+        return { texture: tex, canvas: memory.vectorCanvas };
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, 512, 512);
+
+      if (isFaded) {
+        ctx.filter = 'blur(8px)';
+        ctx.strokeStyle = 'rgba(45, 52, 54, 0.42)';
+        ctx.fillStyle = 'rgba(45, 52, 54, 0.42)';
+      } else {
+        ctx.filter = 'blur(0.6px)';
+        ctx.strokeStyle = 'rgba(20, 20, 19, 0.92)';
+        ctx.fillStyle = 'rgba(20, 20, 19, 0.92)';
+      }
+
+      ctx.lineWidth = 3.2;
+      ctx.lineCap = 'round';
+      ctx.save();
+      ctx.translate(256, 256);
+
+      if (memory.symbolType === 'constellation') {
+        const pts = [[-90, -60], [-20, -110], [60, -40], [110, 50], [10, 90], [-70, 40]];
+        ctx.beginPath();
+        pts.forEach((p, i) => i === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]));
+        ctx.stroke();
+        pts.forEach(p => {
+          ctx.beginPath();
+          ctx.arc(p[0], p[1], 6, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      } else if (memory.symbolType === 'thread') {
+        for (let x = -140; x <= 140; x += 12) {
+          const h = Math.sin(x * 0.05) * Math.cos(x * 0.02) * 95;
+          ctx.beginPath();
+          ctx.moveTo(x, -h);
+          ctx.lineTo(x, h);
+          ctx.stroke();
+        }
+      } else if (memory.symbolType === 'eclipse') {
+        ctx.beginPath();
+        ctx.arc(-20, 0, 85, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(35, -15, 75, 0.4, Math.PI * 1.65);
+        ctx.stroke();
+      } else if (memory.symbolType === 'botanical') {
+        ctx.beginPath();
+        ctx.moveTo(0, 130);
+        ctx.quadraticCurveTo(-20, 0, 15, -130);
+        ctx.stroke();
+        for (let y = -90; y <= 80; y += 35) {
+          ctx.beginPath();
+          ctx.ellipse(y % 70 === 0 ? 35 : -35, y, 28, 9, y % 70 === 0 ? -0.5 : 0.5, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      } else {
+        ctx.beginPath();
+        ctx.moveTo(-110, -20);
+        ctx.bezierCurveTo(-40, -90, 40, 90, 110, 10);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(0, 0, 45, 0, Math.PI * 1.4);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.needsUpdate = true;
+      return { texture: tex, canvas: canvas };
+    }
+
+    /**
+     * ============================================================================
+     * 4. ESCENA 3D EN THREE.JS
+     * ============================================================================
+     */
+    const container = document.getElementById('webgl-container');
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(0, 0.4, 5.4);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    container.appendChild(renderer.domElement);
+
+    const ambientLight = new THREE.AmbientLight(0xfffcf5, 0.78);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.62);
+    dirLight.position.set(3, 5, 4);
+    scene.add(dirLight);
+
+    const rimLight = new THREE.DirectionalLight(0x9e2a2b, 0.25);
+    rimLight.position.set(-4, -2, -3);
+    scene.add(rimLight);
+
+    const bodyGroup = new THREE.Group();
+    scene.add(bodyGroup);
+
+    const torsoGeo = new THREE.SphereGeometry(1.15, 64, 64);
+    const posAttr = torsoGeo.attributes.position;
+    for (let i = 0; i < posAttr.count; i++) {
+      let x = posAttr.getX(i);
+      let y = posAttr.getY(i);
+      let z = posAttr.getZ(i);
+
+      y *= 1.65;
+      const shoulderFactor = Math.exp(-Math.pow((y - 1.1) / 0.85, 2)) * 0.38;
+      const waistFactor = Math.exp(-Math.pow((y + 0.4) / 0.75, 2)) * -0.22;
+      
+      x *= (1.0 + shoulderFactor + waistFactor);
+      z *= (0.78 + shoulderFactor * 0.4);
+
+      const sternum = Math.exp(-Math.pow(x / 0.18, 2)) * -0.05;
+      z += (z > 0 ? sternum : -sternum);
+
+      posAttr.setXYZ(i, x, y, z);
+    }
+    torsoGeo.computeVertexNormals();
+
+    const skinMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0xe6e0d4,
+      roughness: 0.62,
+      metalness: 0.02,
+      clearcoat: 0.15,
+      clearcoatRoughness: 0.8
+    });
+
+    const torsoMesh = new THREE.Mesh(torsoGeo, skinMaterial);
+    bodyGroup.add(torsoMesh);
+
+    // Marcador previo en vivo sobre la piel mientras se tatúa
+    const liveTattooPreviewGeo = new THREE.PlaneGeometry(0.72, 0.72);
+    const liveTattooPreviewMat = new THREE.MeshBasicMaterial({
+      transparent: true,
+      depthWrite: false,
+      opacity: 0
+    });
+    const liveTattooPreviewMesh = new THREE.Mesh(liveTattooPreviewGeo, liveTattooPreviewMat);
+    liveTattooPreviewMesh.visible = false;
+    bodyGroup.add(liveTattooPreviewMesh);
+
+    const raycaster = new THREE.Raycaster();
+    const tattooNodes = [];
+    const resonanceThreadsGroup = new THREE.Group();
+    bodyGroup.add(resonanceThreadsGroup);
+
+    function placeTattooOnSkin(memory, exactHitPoint = null, exactNormal = null) {
+      let surfacePos, normal;
+
+      if (exactHitPoint && exactNormal) {
+        surfacePos = exactHitPoint.clone().add(exactNormal.clone().multiplyScalar(0.016));
+        normal = exactNormal.clone();
+      } else {
+        const dir = memory.pos.clone().normalize();
+        const origin = dir.clone().multiplyScalar(4);
+        raycaster.set(origin, dir.clone().negate());
+        const intersects = raycaster.intersectObject(torsoMesh);
+        
+        surfacePos = memory.pos.clone();
+        normal = dir.clone();
+        if (intersects.length > 0) {
+          surfacePos = intersects[0].point.clone().add(intersects[0].face.normal.clone().multiplyScalar(0.016));
+          normal = intersects[0].face.normal.clone();
+        }
+      }
+
+      const isFaded = memory.daysForgotten > 300;
+      const { texture, canvas } = createTattooTexture(memory);
+
+      const decalGeo = new THREE.PlaneGeometry(0.72, 0.72);
+      const decalMat = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        depthWrite: false,
+        opacity: isFaded ? 0.65 : 0.96
+      });
+
+      const mesh = new THREE.Mesh(decalGeo, decalMat);
+      mesh.position.copy(surfacePos);
+      mesh.lookAt(surfacePos.clone().add(normal));
+
+      const auraGeo = new THREE.RingGeometry(0.28, 0.33, 32);
+      const auraMat = new THREE.MeshBasicMaterial({
+        color: 0x9e2a2b,
+        transparent: true,
+        opacity: memory.isFreshlyInscribed ? 0.85 : 0.0,
+        side: THREE.DoubleSide
+      });
+      const auraMesh = new THREE.Mesh(auraGeo, auraMat);
+      mesh.add(auraMesh);
+
+      bodyGroup.add(mesh);
+
+      const node = {
+        memory,
+        mesh,
+        auraMesh,
+        canvas,
+        pulseOffset: Math.random() * Math.PI * 2,
+        freshTimer: memory.isFreshlyInscribed ? 240 : 0
+      };
+      tattooNodes.push(node);
+      rebuildResonanceThreads();
+      return node;
+    }
+
+    function rebuildResonanceThreads() {
+      while (resonanceThreadsGroup.children.length > 0) {
+        resonanceThreadsGroup.remove(resonanceThreadsGroup.children[0]);
+      }
+
+      for (let i = 0; i < tattooNodes.length; i++) {
+        for (let j = i + 1; j < tattooNodes.length; j++) {
+          const n1 = tattooNodes[i];
+          const n2 = tattooNodes[j];
+          if (n1.memory.group === n2.memory.group || n1.mesh.position.distanceTo(n2.mesh.position) < 1.35) {
+            const p1 = n1.mesh.position.clone();
+            const p2 = n2.mesh.position.clone();
+            const mid = p1.clone().add(p2).multiplyScalar(0.5).normalize().multiplyScalar(1.48);
+
+            const curve = new THREE.QuadraticBezierCurve3(p1, mid, p2);
+            const points = curve.getPoints(32);
+            const geo = new THREE.BufferGeometry().setFromPoints(points);
+            const mat = new THREE.LineBasicMaterial({
+              color: 0x9e2a2b,
+              transparent: true,
+              opacity: 0.24
+            });
+            const line = new THREE.Line(geo, mat);
+            resonanceThreadsGroup.add(line);
+          }
+        }
+      }
+    }
+
+    memories.forEach(m => placeTattooOnSkin(m));
+
+    /**
+     * ============================================================================
+     * 5. RASTRO DE TINTA LÍQUIDA EN CANVAS 2D
+     * ============================================================================
+     */
+    const inkCanvas = document.getElementById('ink-trail-canvas');
+    const inkCtx = inkCanvas.getContext('2d');
+    let inkPoints = [];
+
+    function resizeCanvas() {
+      inkCanvas.width = window.innerWidth;
+      inkCanvas.height = window.innerHeight;
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function drawInkTrail() {
+      inkCtx.clearRect(0, 0, inkCanvas.width, inkCanvas.height);
+      const now = Date.now();
+      inkPoints = inkPoints.filter(p => now - p.time < 1800);
+
+      for (let i = 1; i < inkPoints.length; i++) {
+        const p0 = inkPoints[i - 1];
+        const p1 = inkPoints[i];
+        const age = (now - p1.time) / 1800;
+        const alpha = (1 - age) * (p1.pressing ? 0.65 : 0.18);
+
+        inkCtx.beginPath();
+        inkCtx.moveTo(p0.x, p0.y);
+        inkCtx.lineTo(p1.x, p1.y);
+        inkCtx.strokeStyle = p1.pressing 
+          ? `rgba(158, 42, 43, ${alpha})` 
+          : `rgba(20, 20, 19, ${alpha})`;
+        inkCtx.lineWidth = p1.pressing ? 2.6 : 1.1;
+        inkCtx.stroke();
+      }
+    }
+
+    /**
+     * ============================================================================
+     * 6. LÓGICA DE INTERACCIÓN Y TATUADO CON VIBRACIÓN EN VIVO
+     * ============================================================================
+     */
+    let appState = 'THRESHOLD'; // THRESHOLD | EXPLORING | READING | INSCRIBING | PLACING_TATTOO
+    let isPointerDown = false;
+    let holdProgress = 0;
+    let tattooingProgress = 0;
+    let isActivelyTattooingSkin = false;
+    let activeTattooHit = null;
+    let hoveredNode = null;
+    let activeNode = null;
+    let wordRevealTimers = [];
+    let pendingTattooData = null;
+
+    let mouse = new THREE.Vector2();
+    let lastMousePos = { x: 0, y: 0 };
+    let mouseSpeed = 0;
+    let lastActivityTime = Date.now();
+    let isDraggingBody = false;
+    let targetRotationY = 0;
+    let targetRotationX = 0;
+
+    const needleCursor = document.getElementById('needle-cursor');
+    const needleRing = document.getElementById('needle-ring');
+    const needleLabel = document.getElementById('needle-label');
+    const thresholdScreen = document.getElementById('threshold-screen');
+    const thresholdIncision = document.getElementById('threshold-incision-line');
+    const hud = document.getElementById('hud');
+    const inscribeBtn = document.getElementById('inscribe-btn');
+    const memoryOverlay = document.getElementById('memory-overlay');
+    const inscribeOverlay = document.getElementById('inscribe-overlay');
+    const placementBanner = document.getElementById('placement-banner');
+
+    window.addEventListener('pointermove', (e) => {
+      const dx = e.clientX - lastMousePos.x;
+      const dy = e.clientY - lastMousePos.y;
+      mouseSpeed = Math.hypot(dx, dy);
+      lastMousePos = { x: e.clientX, y: e.clientY };
+      lastActivityTime = Date.now();
+
+      needleCursor.style.left = `${e.clientX}px`;
+      needleCursor.style.top = `${e.clientY}px`;
+
+      mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+      if (appState !== 'THRESHOLD') {
+        inkPoints.push({ x: e.clientX, y: e.clientY, time: Date.now(), pressing: isPointerDown });
+      }
+
+      if ((appState === 'EXPLORING' || (appState === 'PLACING_TATTOO' && !isActivelyTattooingSkin)) && isDraggingBody && !hoveredNode) {
+        targetRotationY += dx * 0.006;
+        targetRotationX = Math.max(-0.5, Math.min(0.5, targetRotationX + dy * 0.004));
+      }
+    });
+
+    window.addEventListener('pointerdown', (e) => {
+      if (appState === 'INSCRIBING') return;
+      isPointerDown = true;
+      lastActivityTime = Date.now();
+      sound.init();
+
+      if (appState === 'THRESHOLD') {
+        sound.startNeedleBuzz(false);
+      } else if (appState === 'EXPLORING') {
+        if (hoveredNode) {
+          sound.startNeedleBuzz(false);
+        } else {
+          isDraggingBody = true;
+        }
+      } else if (appState === 'PLACING_TATTOO' && pendingTattooData) {
+        raycaster.setFromCamera(mouse, camera);
+        const hits = raycaster.intersectObject(torsoMesh);
+        if (hits.length > 0) {
+          // Comienza el ritual de tatuar sobre la piel: sonido intenso + vibración + tinta progresiva
+          isActivelyTattooingSkin = true;
+          activeTattooHit = hits[0];
+          tattooingProgress = 0;
+          sound.startNeedleBuzz(true);
+          placementBanner.classList.add('tattooing');
+          placementBanner.textContent = 'TATUANDO EN LA DERMIS... MANTÉN PULSADO';
+
+          // Preparamos la proyección previa sobre el punto exacto
+          const localPoint = bodyGroup.worldToLocal(activeTattooHit.point.clone());
+          const localNormal = activeTattooHit.face.normal.clone();
+          const surfacePos = localPoint.clone().add(localNormal.clone().multiplyScalar(0.017));
+
+          if (pendingTattooData.vectorCanvas) {
+            const tex = new THREE.CanvasTexture(pendingTattooData.vectorCanvas);
+            tex.needsUpdate = true;
+            liveTattooPreviewMat.map = tex;
+            liveTattooPreviewMat.needsUpdate = true;
+          }
+          liveTattooPreviewMesh.position.copy(surfacePos);
+          liveTattooPreviewMesh.lookAt(surfacePos.clone().add(localNormal));
+          liveTattooPreviewMesh.visible = true;
+          liveTattooPreviewMat.opacity = 0.1;
+
+          // Vibración háptica en dispositivos móviles compatibles
+          if (navigator.vibrate) navigator.vibrate([40, 20, 40, 20, 40, 20, 40]);
+        } else {
+          isDraggingBody = true;
+        }
+      }
+    });
+
+    window.addEventListener('pointerup', () => {
+      isPointerDown = false;
+      isDraggingBody = false;
+      holdProgress = 0;
+      sound.stopNeedleBuzz();
+
+      if (isActivelyTattooingSkin && tattooingProgress < 1) {
+        // Si suelta antes de terminar de tatuar, se cancela el pinchazo
+        isActivelyTattooingSkin = false;
+        tattooingProgress = 0;
+        liveTattooPreviewMesh.visible = false;
+        placementBanner.classList.remove('tattooing');
+        placementBanner.textContent = 'MANTÉN PULSADO SOBRE EL PUNTO EXACTO DEL CUERPO PARA TATUAR';
+        skinMaterial.color.setHex(0xe6e0d4);
+      }
+
+      needleRing.style.transform = 'translate(-50%, -50%) scale(1)';
+      if (thresholdIncision) {
+        thresholdIncision.style.transform = 'scaleY(1)';
+        thresholdIncision.style.stroke = '#141413';
+      }
+    });
+
+    function finalizeTattooPlacement() {
+      isActivelyTattooingSkin = false;
+      isPointerDown = false;
+      tattooingProgress = 0;
+      liveTattooPreviewMesh.visible = false;
+      sound.stopNeedleBuzz();
+      skinMaterial.color.setHex(0xe6e0d4);
+
+      const localPoint = bodyGroup.worldToLocal(activeTattooHit.point.clone());
+      const localNormal = activeTattooHit.face.normal.clone();
+
+      const newMem = {
+        id: memories.length + 1,
+        zone: pendingTattooData.zone,
+        group: "TORSO_SUPERIOR",
+        date: 'HOY · RECIÉN TATUADO',
+        daysForgotten: 0,
+        touches: 1,
+        pitch: 1.15,
+        pos: localPoint,
+        symbolType: 'scar',
+        vectorCanvas: pendingTattooData.vectorCanvas,
+        isFreshlyInscribed: true,
+        story: pendingTattooData.story,
+        resonances: [
+          { text: "Tu cicatriz acaba de unirse al cuerpo colectivo. Alguien ya está sintiendo tu historia.", meta: "SISTEMA VESTIGE · AHORA" }
+        ]
+      };
+
+      memories.push(newMem);
+      const createdNode = placeTattooOnSkin(newMem, localPoint, localNormal);
+      updateCounterHUD();
+      sound.playMemoryChime(1.2);
+
+      pendingTattooData = null;
+      placementBanner.classList.remove('visible', 'tattooing');
+      placementBanner.textContent = 'MANTÉN PULSADO SOBRE EL PUNTO EXACTO DEL CUERPO PARA TATUAR';
+      openMemory(createdNode);
+    }
+
+    // ACTO III: Abrir memoria
+    function openMemory(node) {
+      appState = 'READING';
+      activeNode = node;
+      isPointerDown = false;
+      holdProgress = 0;
+      sound.stopNeedleBuzz();
+      sound.playMemoryChime(node.memory.pitch);
+
+      if (node.memory.daysForgotten > 300) {
+        node.memory.daysForgotten = 0;
+        const { texture } = createTattooTexture(node.memory);
+        node.mesh.material.map = texture;
+        node.mesh.material.opacity = 0.98;
+        node.mesh.material.needsUpdate = true;
+        updateCounterHUD();
+      }
+
+      node.memory.touches += 1;
+
+      document.getElementById('mem-zone').textContent = node.memory.zone;
+      document.getElementById('mem-date').textContent = node.memory.date;
+      document.getElementById('mem-touches').textContent = `TOCADO POR ${node.memory.touches} DESCONOCIDOS`;
+
+      const storyContainer = document.getElementById('mem-story');
+      storyContainer.innerHTML = '';
+      wordRevealTimers.forEach(t => clearTimeout(t));
+      wordRevealTimers = [];
+
+      const words = node.memory.story.split(' ');
+      words.forEach((word, index) => {
+        const span = document.createElement('span');
+        span.className = 'story-word';
+        span.textContent = word;
+        storyContainer.appendChild(span);
+
+        const revealTimer = setTimeout(() => span.classList.add('revealed'), index * 200);
+        const fadeTimer = setTimeout(() => span.classList.add('fading'), index * 200 + 5500);
+        wordRevealTimers.push(revealTimer, fadeTimer);
+      });
+
+      renderResonances(node);
+      memoryOverlay.classList.add('visible');
+      needleLabel.textContent = '';
+    }
+
+    function renderResonances(node) {
+      const list = document.getElementById('resonance-list');
+      list.innerHTML = '';
+      node.memory.resonances.forEach(res => {
+        const div = document.createElement('div');
+        div.className = 'resonance-item';
+        div.innerHTML = `«${res.text}»<span class="resonance-meta">${res.meta}</span>`;
+        list.appendChild(div);
+      });
+    }
+
+    document.getElementById('resonance-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && activeNode) {
+        const val = e.target.value.trim();
+        if (val) {
+          activeNode.memory.resonances.unshift({
+            text: val,
+            meta: 'TÚ (ECO ANÓNIMO) · AHORA MISMO'
+          });
+          e.target.value = '';
+          renderResonances(activeNode);
+          sound.playMemoryChime(1.35);
+        }
+      }
+    });
+
+    document.getElementById('close-memory-btn').addEventListener('click', () => {
+      appState = 'EXPLORING';
+      activeNode = null;
+      memoryOverlay.classList.remove('visible');
+    });
+
+    document.getElementById('extract-stencil-btn').addEventListener('click', () => {
+      if (activeNode) extractStencilArtifact(activeNode);
+    });
+
+    // ACTO V: Extracción de Stencil Transmedia
+    function extractStencilArtifact(node) {
+      const toast = document.getElementById('stencil-toast');
+      toast.classList.add('show');
+      sound.playMemoryChime(1.4);
+
+      const sheet = document.createElement('canvas');
+      sheet.width = 800;
+      sheet.height = 1120;
+      const ctx = sheet.getContext('2d');
+
+      ctx.fillStyle = '#EFECE6';
+      ctx.fillRect(0, 0, 800, 1120);
+
+      ctx.strokeStyle = '#141413';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(40, 40, 720, 1040);
+
+      ctx.fillStyle = '#141413';
+      ctx.font = 'bold 14px monospace';
+      ctx.fillText("VESTIGE // ARCHIVO DE PIEL Y MEMORIA", 70, 85);
+      ctx.font = '12px monospace';
+      ctx.fillText(`COORDENADA: ${node.memory.zone} · FECHA: ${node.memory.date}`, 70, 110);
+
+      ctx.save();
+      ctx.translate(400, 480);
+      ctx.scale(-1.25, 1.25);
+      ctx.drawImage(node.canvas, -256, -256);
+      ctx.restore();
+
+      ctx.strokeRect(660, 65, 65, 65);
+      ctx.fillRect(675, 80, 15, 15);
+      ctx.fillRect(700, 105, 15, 15);
+
+      ctx.font = '300 22px Helvetica, Arial, sans-serif';
+      wrapText(ctx, `«${node.memory.story}»`, 70, 830, 660, 34);
+
+      ctx.font = '11px monospace';
+      ctx.fillText("RITUAL TRANSMEDIA: HUMEDECE ESTE CALCO Y TRANSFIÉRELO A TU PIEL.", 70, 1035);
+
+      const link = document.createElement('a');
+      link.download = `VESTIGE_STENCIL_${node.memory.zone.replace(/\s+/g, '_')}.png`;
+      link.href = sheet.toDataURL('image/png');
+      link.click();
+
+      setTimeout(() => toast.classList.remove('show'), 3800);
+    }
+
+    function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+      const words = text.split(' ');
+      let line = '';
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        if (ctx.measureText(testLine).width > maxWidth && n > 0) {
+          ctx.fillText(line, x, y);
+          line = words[n] + ' ';
+          y += lineHeight;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line, x, y);
+    }
+
+    /**
+     * ============================================================================
+     * 7. GESTIÓN DE SUBIDA Y VECTORIZACIÓN AUTOMÁTICA DE IMAGEN
+     * ============================================================================
+     */
+    const dropzone = document.getElementById('image-dropzone');
+    const fileInput = document.getElementById('tattoo-file-input');
+    const previewImg = document.getElementById('tattoo-preview');
+    const vectorBadge = document.getElementById('vector-badge');
+    const dropzoneText = document.getElementById('dropzone-text');
+    let vectorizedCanvasCache = null;
+
+    dropzone.addEventListener('click', () => fileInput.click());
+
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleImageFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        handleImageFile(e.target.files[0]);
+      }
+    });
+
+    function handleImageFile(file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          // Vectorizamos y eliminamos el fondo al instante
+          vectorizedCanvasCache = vectorizeImageToInkCanvas(img);
+          previewImg.src = vectorizedCanvasCache.toDataURL('image/png');
+          previewImg.style.display = 'block';
+          vectorBadge.style.display = 'block';
+          dropzoneText.style.display = 'none';
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    inscribeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      appState = 'INSCRIBING';
+      inscribeOverlay.classList.add('visible');
+    });
+
+    document.getElementById('cancel-inscribe-btn').addEventListener('click', closeInscribeModal);
+
+    function closeInscribeModal() {
+      appState = 'EXPLORING';
+      inscribeOverlay.classList.remove('visible');
+    }
+
+    document.getElementById('confirm-inscribe-btn').addEventListener('click', () => {
+      const zoneVal = document.getElementById('new-zone').value.trim() || 'ZONA PERSONALIZADA';
+      const storyVal = document.getElementById('new-story').value.trim() || 'Una marca para no olvidar quiénes fuimos.';
+
+      pendingTattooData = {
+        zone: zoneVal.toUpperCase(),
+        story: storyVal,
+        vectorCanvas: vectorizedCanvasCache
+      };
+
+      document.getElementById('new-zone').value = '';
+      document.getElementById('new-story').value = '';
+      previewImg.style.display = 'none';
+      vectorBadge.style.display = 'none';
+      dropzoneText.style.display = 'block';
+      vectorizedCanvasCache = null;
+
+      inscribeOverlay.classList.remove('visible');
+      placementBanner.classList.add('visible');
+      appState = 'PLACING_TATTOO';
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if ((e.key === 's' || e.key === 'S') && appState === 'READING' && activeNode) {
+        if (document.activeElement.tagName !== 'INPUT') {
+          extractStencilArtifact(activeNode);
+        }
+      }
+      if (e.key === 'Escape' && appState === 'INSCRIBING') {
+        closeInscribeModal();
+      }
+    });
+
+    function updateCounterHUD() {
+      const total = String(memories.length).padStart(2, '0');
+      const forgotten = String(memories.filter(m => m.daysForgotten > 300).length).padStart(2, '0');
+      document.getElementById('memory-counter').textContent = `${total} MARCAS ACTIVAS · ${forgotten} EN RIESGO DE OLVIDO`;
+    }
+
+    /**
+     * ============================================================================
+     * 8. BUCLE DE ANIMACIÓN PRINCIPAL (Con vibración de piel al tatuar)
+     * ============================================================================
+     */
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const elapsed = clock.getElapsedTime();
+
+      drawInkTrail();
+
+      // ACTO I: El Umbral
+      if (appState === 'THRESHOLD' && isPointerDown) {
+        holdProgress += 0.018;
+        if (thresholdIncision) {
+          thresholdIncision.style.transform = `scaleY(${1 + holdProgress * 1.4})`;
+          thresholdIncision.style.stroke = '#9E2A2B';
+        }
+        needleRing.style.transform = `translate(-50%, -50%) scale(${1 - holdProgress * 0.6})`;
+
+        if (holdProgress >= 1) {
+          appState = 'EXPLORING';
+          isPointerDown = false;
+          holdProgress = 0;
+          sound.stopNeedleBuzz();
+          thresholdScreen.classList.add('hidden');
+          hud.classList.add('active');
+          inscribeBtn.classList.add('active');
+        }
+      }
+
+      // Respiración orgánica del cuerpo
+      const breath = Math.sin(elapsed * 1.4) * 0.018;
+      torsoMesh.scale.set(1 + breath, 1 + breath * 0.6, 1 + breath * 1.4);
+
+      // Vibración física de la piel mientras se tatúa una nueva marca
+      if (appState === 'PLACING_TATTOO' && isActivelyTattooingSkin) {
+        tattooingProgress += 0.014; // ~1.2 segundos de tatuado intenso
+
+        // Micro-vibración de alta frecuencia de la escultura y la cámara
+        const vibIntensity = 0.018;
+        bodyGroup.position.x = (Math.random() - 0.5) * vibIntensity;
+        bodyGroup.position.y = (Math.random() - 0.5) * vibIntensity;
+
+        // La aguja se contrae y vibra sobre la piel
+        const needleVib = 0.45 + Math.sin(elapsed * 95) * 0.08;
+        needleRing.style.transform = `translate(-50%, -50%) scale(${needleVib})`;
+
+        // La piel se enrojece levemente por la punción y el tatuaje va apareciendo
+        skinMaterial.color.lerpColors(new THREE.Color(0xe6e0d4), new THREE.Color(0xe3c8c4), tattooingProgress * 0.65);
+        liveTattooPreviewMat.opacity = Math.min(0.95, tattooingProgress);
+
+        if (tattooingProgress >= 1) {
+          bodyGroup.position.set(0, 0, 0);
+          finalizeTattooPlacement();
+        }
+      } else {
+        bodyGroup.position.lerp(new THREE.Vector3(0, 0, 0), 0.2);
+      }
+
+      if (appState === 'EXPLORING' || appState === 'PLACING_TATTOO') {
+        const blurAmount = Math.min(5, Math.max(0, (mouseSpeed - 30) * 0.11));
+        container.style.filter = `blur(${blurAmount.toFixed(1)}px)`;
+        mouseSpeed *= 0.85;
+
+        const idleTime = (Date.now() - lastActivityTime) / 1000;
+        if (idleTime > 5 && !isPointerDown && appState === 'EXPLORING') {
+          targetRotationY += 0.0032;
+        }
+
+        bodyGroup.rotation.y += (targetRotationY - bodyGroup.rotation.y) * 0.06;
+        bodyGroup.rotation.x += (targetRotationX - bodyGroup.rotation.x) * 0.06;
+        camera.position.lerp(new THREE.Vector3(0, 0.4, 5.4), 0.05);
+      }
+
+      if (appState === 'READING' && activeNode) {
+        const worldPos = new THREE.Vector3();
+        activeNode.mesh.getWorldPosition(worldPos);
+        const targetCamPos = worldPos.clone().add(worldPos.clone().normalize().multiplyScalar(1.85));
+        camera.position.lerp(targetCamPos, 0.05);
+        camera.lookAt(worldPos);
+      } else {
+        camera.lookAt(0, 0.35, 0);
+      }
+
+      // Raycasting del Cursor-Aguja
+      raycaster.setFromCamera(mouse, camera);
+
+      if (appState === 'PLACING_TATTOO') {
+        const bodyHits = raycaster.intersectObject(torsoMesh);
+        if (bodyHits.length > 0) {
+          needleCursor.classList.add('hovering');
+          needleLabel.textContent = isActivelyTattooingSkin 
+            ? `TATUANDO ${Math.round(tattooingProgress * 100)}%` 
+            : 'MANTÉN PULSADO PARA TATUAR';
+        } else {
+          needleCursor.classList.remove('hovering');
+          needleLabel.textContent = 'ARRASTRA PARA GIRAR EL CUERPO';
+        }
+      } else if (appState === 'EXPLORING') {
+        const tattooMeshes = tattooNodes.map(n => n.mesh);
+        const intersects = raycaster.intersectObjects(tattooMeshes);
+
+        if (intersects.length > 0) {
+          const hitMesh = intersects[0].object;
+          hoveredNode = tattooNodes.find(n => n.mesh === hitMesh);
+          needleCursor.classList.add('hovering');
+          needleLabel.textContent = `MANTENER [${hoveredNode.memory.zone}]`;
+          document.getElementById('coord-zone').textContent = `ZONA: ${hoveredNode.memory.zone}`;
+          document.getElementById('coord-depth').textContent = `PROFUNDIDAD DERMIS: 1.85 MM`;
+
+          if (isPointerDown) {
+            holdProgress += 0.022;
+            needleRing.style.transform = `translate(-50%, -50%) scale(${Math.max(0.2, 1 - holdProgress * 0.8)})`;
+            hoveredNode.auraMesh.material.opacity = holdProgress * 0.85;
+
+            if (holdProgress >= 1) {
+              openMemory(hoveredNode);
+            }
+          }
+        } else {
+          hoveredNode = null;
+          needleCursor.classList.remove('hovering');
+          needleLabel.textContent = '';
+          document.getElementById('coord-zone').textContent = 'ZONA: EXPLORACIÓN LIBRE';
+          document.getElementById('coord-depth').textContent = 'PROFUNDIDAD DERMIS: 0.00 MM';
+        }
+      }
+
+      tattooNodes.forEach(node => {
+        const pulse = 1 + Math.sin(elapsed * 2.6 + node.pulseOffset) * 0.032;
+        node.mesh.scale.set(pulse, pulse, 1);
+
+        if (node.freshTimer > 0) {
+          node.freshTimer--;
+          node.auraMesh.material.opacity = (node.freshTimer / 240) * 0.85;
+        } else if (node !== hoveredNode) {
+          node.auraMesh.material.opacity *= 0.9;
+        }
+      });
+
+      renderer.render(scene, camera);
+    }
+
+    animate();
+  </script>
+</body>
+</html>

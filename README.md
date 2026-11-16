@@ -13,14 +13,14 @@ Un cuerpo colectivo digital donde las marcas en la piel permanecen nítidas solo
 
 ---
 
-## 👁️ Sobre el Proyecto
+## Sobre el Proyecto
 **VESTIGE** es una plataforma digital experimental y transmedia que explora el tatuaje memorial no como un elemento estético, sino como un archivo somático y un acto de resistencia frente a la amnesia digital contemporánea. 
 
 Frente a la sobreacumulación fría de fotografías en la nube, el proyecto traslada la física de la piel y el duelo a una experiencia web interactiva basada en el concepto de **Ya'aburnee**.
 
 ---
 
-## ⚡ Manifiesto Anti-UI (Mecánicas de Interacción)
+## Manifiesto Anti-UI (Mecánicas de Interacción)
 Para replicar la fragilidad de la memoria humana, **VESTIGE** destruye las convenciones de usabilidad web estándar mediante cinco leyes físicas:
 
 1. **La prisa desenfoca la piel:** El consumo rápido es incompatible con el recuerdo. Mover el cursor con ansiedad deforma e introduce desenfoque óptico en la escena 3D.
@@ -31,7 +31,7 @@ Para replicar la fragilidad de la memoria humana, **VESTIGE** destruye las conve
 
 ---
 
-## 🛠️ Stack Tecnológico
+## Stack Tecnológico
 * **Core 3D:** Three.js (Escultura anatómica de porcelana mate, sub-superficie y *raycasting* sobre coordenadas locales).
 * **Audio Generativo:** Web Audio API (Síntesis en tiempo real de latido cardíaco, zumbido de bobina de tatuaje y acordes armónicos).
 * **Gráficos 2D / Canvas:** Algoritmo de estela líquida de tinta y vectorización de imágenes subidas por el usuario.
@@ -39,7 +39,7 @@ Para replicar la fragilidad de la memoria humana, **VESTIGE** destruye las conve
 
 ---
 
-## 📂 Estructura del Repositorio
+## Estructura del Repositorio
 ```text
 📦 VESTIGE
  ┣ 📜 vestige.html       # Archivo monolítico principal (HTML5, CSS3, Three.js & JS)
